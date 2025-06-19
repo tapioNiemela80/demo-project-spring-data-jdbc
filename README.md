@@ -26,7 +26,7 @@ Tämä on esimerkki kevytprojektinhallintamallista, jossa tiimit ja projektit to
 
 Sovellus vaatii PostgreSQL:n, joka ajetaan Dockerin kautta. docker-compose.yml on konfiguroitu seuraavasti:
 
-### .env-tiedosto (luo juureen)
+### .env-tiedosto (luo juureen kopioimalla .env-example ja muokkaamalla)
 POSTGRES_PASSWORD=salasana123
 
 PGDATA_VOLUME=/c/Users/demo/postgres-data
@@ -49,7 +49,7 @@ Itse sovellus käynnistetään project-demo-kansiossa ajamalla komento ```mvn sp
 
 - **TimeEstimation**: Abstraktoi ajan arvion. Estää virheelliset arvot (esim. negatiiviset tunnit).
 - **ActualSpentTime**: Kuvaa oikeasti kulunutta aikaa. Voi päivittyä vasta kun task on valmis.
-- **ProjectId, ProjectTaskId, ContactPersonId, TaskId, TeamId, TeamTaskId, TeamMemberId**: Varmistavat oikeat ID-käytännöt ilman paljaita merkkijonoja tai UUID:itä.
+- **ProjectId, ProjectTaskId, TaskId, TeamId, TeamTaskId, TeamMemberId**: Varmistavat oikeat ID-käytännöt ilman paljaita merkkijonoja tai UUID:itä.
 
 
 ## Eventit
@@ -72,6 +72,9 @@ Tietyt aggregaattitapahtumat laukaisevat muita päivityksiä järjestelmässä:
 
 ### Lisää tiimille jäsen
 ```curl --location 'http://localhost:8080/teams/791031a6-922b-4ea0-93da-ae7b21a7a09b/members' --header 'Content-Type: application/json' --data '{"name":"tapio niemelä", "profession":"ddd enthuistic"}'```
+
+### Poista jäsen tiimistä
+```curl --location --request DELETE 'http://localhost:8080/teams/791031a6-922b-4ea0-93da-ae7b21a7a09b/members/c41c9a87-688f-428d-a1d5-4134f1faeeaf'```
 
 ### Lisää (projektin) taski tiimille
 ```curl --location --request POST 'http://localhost:8080/teams/791031a6-922b-4ea0-93da-ae7b21a7a09b/tasks/by-project-id/6e46e573-1bf4-46e9-a633-fb7447e42c16' --data ''```
