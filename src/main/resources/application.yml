@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydb?currentSchema=project_demo
+    username: user
+    password: ${POSTGRES_PASSWORD}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+email:
+  sender: demo.project@example.com
