@@ -16,7 +16,7 @@ public class TeamViewService {
         this.repository = repository;
     }
 
-    public List<TeamsView> findAll(){
+    public List<TeamsView> findAll() {
         return repository.findTeams().stream()
                 .map(data -> new TeamsView(data.teamId(), data.teamName()))
                 .toList();
@@ -24,7 +24,7 @@ public class TeamViewService {
 
     public Optional<TeamView> findById(UUID teamId) {
         var rows = repository.findTeamViewByTeamId(teamId);
-        if(rows.isEmpty()){
+        if (rows.isEmpty()) {
             return Optional.empty();
         }
         TeamViewRow first = rows.get(0);
@@ -69,19 +69,23 @@ public class TeamViewService {
                 .collect(Collectors.collectingAndThen(
                         Collectors.toMap(
                                 TeamViewRow::memberId,
-                                row -> new MemberView(
-                                        row.memberId(),
-                                        row.memberName(),
-                                        row.memberProfession()
-                                ),
+                                this::getMemberView,
                                 (a, b) -> a // ignore duplicates
                         ),
                         map -> new ArrayList<>(map.values())
                 ));
     }
 
+    private MemberView getMemberView(TeamViewRow row) {
+        return new MemberView(
+                row.memberId(),
+                row.memberName(),
+                row.memberProfession()
+        );
+    }
+
     private ActualTimeSpent actualTimeSpent(Integer actualTimeSpentHours, Integer actualTimeSpentMinutes) {
-        if(actualTimeSpentHours == null){
+        if (actualTimeSpentHours == null) {
             return null;
         }
         return new ActualTimeSpent(actualTimeSpentHours, actualTimeSpentMinutes);
