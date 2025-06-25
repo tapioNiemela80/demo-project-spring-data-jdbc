@@ -112,5 +112,4 @@ Tietyt aggregaattitapahtumat laukaisevat muita päivityksiä järjestelmässä:
 - Toteuttanut Tapio Niemelä. Portfolio toimii todisteena osaamisesta:
 - Java + Spring Boot + Spring Data JDBC
 - Domain Driven Design (aggregaatit, säännöt, eventit)
-- Testivetoisuus
 - Käytännöllinen REST-rajapinta
