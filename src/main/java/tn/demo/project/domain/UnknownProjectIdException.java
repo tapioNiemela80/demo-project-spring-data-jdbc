@@ -9,4 +9,8 @@ public class UnknownProjectIdException extends RuntimeException{
         super("Unknown project id %s".formatted(givenId));
         this.givenId = givenId;
     }
+
+    public UUID getGivenId() {
+        return givenId;
+    }
 }

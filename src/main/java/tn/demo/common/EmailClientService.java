@@ -1,5 +1,5 @@
 package tn.demo.common;
 
 public interface EmailClientService  {
-    public void send(EmailMessage message);
+    void send(EmailMessage message);
 }

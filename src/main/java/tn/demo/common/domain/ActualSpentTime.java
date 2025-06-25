@@ -4,7 +4,6 @@ import java.util.Objects;
 
 @ValueObject(description ="Represents actual time used on task or on tasks")
 public final class ActualSpentTime {
-
     private final int hours;
     private final int minutes;
 
