@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -27,35 +28,44 @@ public class DomainEventListeners {
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventListeners.class);
 
-    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService,     @Value("${email.sender}") String sender) {
+    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService, @Value("${email.sender}") String sender) {
         this.projects = projects;
         this.emailClientService = emailClientService;
         this.sender = sender;
     }
 
     @Retryable(
-            value = OptimisticLockingFailureException.class,
+            recover = "recoverOptimisticLockingFailureExceptionOnTeamTaskCompletedEvent",
+            retryFor = OptimisticLockingFailureException.class,
             maxAttempts = 5,
             backoff = @Backoff(delay = 200)
     )
     @TransactionalEventListener
-    public void on(TeamTaskCompletedEvent teamTaskCompletedEvent){
-        log.info("teamTaskCompletedEvent " + teamTaskCompletedEvent.getProjectTaskId());
+    public void on(TeamTaskCompletedEvent teamTaskCompletedEvent) {
+        log.atDebug().log(() -> "teamTaskCompletedEvent %s".formatted(teamTaskCompletedEvent));
         projects.findByTaskId(teamTaskCompletedEvent.getProjectTaskId().value())
                 .map(project -> markProjectTaskCompleted(teamTaskCompletedEvent, project, teamTaskCompletedEvent.getActualSpentTime()))
-                .map(project -> projects.save(project));
+                .ifPresentOrElse(projects::save,
+                        () -> log.warn("Project by task id not found {}", teamTaskCompletedEvent.getProjectTaskId()));
+    }
+
+    @Recover
+    public void recoverOptimisticLockingFailureExceptionOnTeamTaskCompletedEvent(OptimisticLockingFailureException ex, TeamTaskCompletedEvent event) {
+        log.error("failed to complete task after 5 retries for event: {}", event, ex);
     }
 
     @TransactionalEventListener
-    public void on(TaskAddedToProjectEvent event){
-        log.info("GOT TaskAddedToProjectEvent projectId = %s, taskId = %s".formatted(event.getToProject(), event.getTaskId()));
-        projects.findById(event.getToProject().value())
-                .ifPresent(project -> sendEmail(project, event.getTaskId()));
+    public void on(TaskAddedToProjectEvent taskAddedToProjectEvent) {
+        log.atDebug().log(() -> "taskAddedToProjectEvent %s".formatted(taskAddedToProjectEvent));
+        projects.findById(taskAddedToProjectEvent.getToProject().value())
+                .ifPresentOrElse(project -> sendEmail(project, taskAddedToProjectEvent.getTaskId()),
+                        () -> log.warn("Project not found {}", taskAddedToProjectEvent.getToProject()));
     }
 
     private void sendEmail(Project project, ProjectTaskId taskId) {
         project.getTask(taskId)
-                .ifPresent(task -> sendEmail(project.getContactPersonEmail(), task));
+                .ifPresentOrElse(task -> sendEmail(project.getContactPersonEmail(), task),
+                        () -> log.warn("Task {} not found in project {}", taskId, project.getId()));
     }
 
     private void sendEmail(String contactPersonEmail, ProjectTaskSnapshot task) {
