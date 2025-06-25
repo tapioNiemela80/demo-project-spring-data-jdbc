@@ -3,14 +3,14 @@ package tn.demo.project.domain;
 import java.util.UUID;
 
 public class UnknownProjectIdException extends RuntimeException{
-    private final UUID givenId;
+    private final ProjectId projectId;
 
-    public UnknownProjectIdException(UUID givenId) {
-        super("Unknown project id %s".formatted(givenId));
-        this.givenId = givenId;
+    public UnknownProjectIdException(ProjectId projectId) {
+        super("Unknown project id %s".formatted(projectId));
+        this.projectId = projectId;
     }
 
-    public UUID getGivenId() {
-        return givenId;
+    public ProjectId getProjectId() {
+        return projectId;
     }
 }

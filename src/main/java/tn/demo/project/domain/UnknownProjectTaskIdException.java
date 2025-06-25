@@ -7,4 +7,8 @@ public class UnknownProjectTaskIdException extends RuntimeException{
         super("Unknown task %s".formatted(taskId));
         this.taskId = taskId;
     }
+
+    public ProjectTaskId getTaskId() {
+        return taskId;
+    }
 }

@@ -90,7 +90,7 @@ public class Project implements Persistable<UUID> {
 
     public Project addTask(ProjectTaskId taskId, String taskName, String description, TimeEstimation estimation){
         if(isCompleted()){
-            throw new ProjectAlreadyCompletedException(id);
+            throw new ProjectAlreadyCompletedException(new ProjectId(id));
         }
         var currentTotalEstimation = getEstimationOfAllTasks();
         var newEstimation = currentTotalEstimation.add(estimation);

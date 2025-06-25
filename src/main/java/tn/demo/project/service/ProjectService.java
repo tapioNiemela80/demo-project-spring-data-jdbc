@@ -38,7 +38,7 @@ public class ProjectService {
                 .map(project -> project.addTask(taskId, taskName, description, toDomain(estimation)))
                 .map(projects::save)
                 .map(project -> publishNewTaskAddedToProjectEvent(projectId, taskId))
-                .orElseThrow(() -> new UnknownProjectIdException(projectId.value()));
+                .orElseThrow(() -> new UnknownProjectIdException(projectId));
     }
 
     private ProjectTaskId publishNewTaskAddedToProjectEvent(ProjectId projectId, ProjectTaskId taskId) {
