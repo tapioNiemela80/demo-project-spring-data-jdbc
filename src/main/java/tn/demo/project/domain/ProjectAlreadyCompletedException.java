@@ -1,7 +1,5 @@
 package tn.demo.project.domain;
 
-import java.util.UUID;
-
 public class ProjectAlreadyCompletedException extends RuntimeException {
     private final ProjectId projectId;
     public ProjectAlreadyCompletedException(ProjectId projectId) {
