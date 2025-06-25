@@ -6,4 +6,8 @@ public class TeamMemberHasAssignedTasksException extends RuntimeException {
         super("Team member %s has assigned tasks ".formatted(memberId));
         this.memberId = memberId;
     }
+
+    public TeamMemberId getMemberId() {
+        return memberId;
+    }
 }
