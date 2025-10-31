@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
+import tn.demo.common.domain.Email;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
@@ -19,8 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DomainEventListenersTest {
@@ -54,6 +54,8 @@ class DomainEventListenersTest {
     @Test
     void sendsEmailOnTaskAddedToProjectEvent(){
         Project project = Mockito.mock(Project.class);
+        Email email = mock(Email.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(email));
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
@@ -62,5 +64,19 @@ class DomainEventListenersTest {
 
         underTest.on(taskAddedToProjectEvent);
         verify(emailClientService).send(any(EmailMessage.class));
+    }
+
+    @Test
+    void doesNotSendEmailOnTaskAddedToProjectEventWhenContactEmailIsIncorrect(){
+        Project project = Mockito.mock(Project.class);
+        when(project.validContactEmail()).thenReturn(Optional.empty());
+        ProjectId projectId = new ProjectId(UUID.randomUUID());
+        ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
+        when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
+        when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
+        TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
+
+        underTest.on(taskAddedToProjectEvent);
+        verify(emailClientService, never()).send(any(EmailMessage.class));
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
 import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.common.domain.AggregateRoot;
+import tn.demo.common.domain.Email;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,19 +36,24 @@ public class Project implements Persistable<UUID> {
     private final int initialEstimationMinutes;
     @MappedCollection(idColumn = "project_id", keyColumn = "id")
     private final Set<ProjectTask> tasks;
+
+    @Transient
+    private final ContactPerson contactPerson;
+
     private final String contactPersonName;
     private final String contactPersonEmail;
     @Transient
     private final transient boolean isNew;
 
-    public static Project createNew(ProjectId projectId, String name, String description, LocalDateTime now, LocalDate plannedEndDate, TimeEstimation timeEstimation, String contactPersonName, String contactPersonEmail) {
-        return new Project(projectId.value(), name, description, now, plannedEndDate, ProjectStatus.PLANNED, 0, true, new HashSet<>(), timeEstimation, contactPersonName, contactPersonEmail);
+    public static Project createNew(ProjectId projectId, String name, String description, LocalDateTime now,
+                                    LocalDate plannedEndDate, TimeEstimation timeEstimation, ContactPerson contactPerson) {
+        return new Project(projectId.value(), name, description, now, plannedEndDate, ProjectStatus.PLANNED, 0, true, new HashSet<>(), timeEstimation, contactPerson);
     }
 
     private Project(UUID id, String name, String description,
                     LocalDateTime createdAt, LocalDate plannedEndDate, ProjectStatus status,
                     int version, boolean isNew, Set<ProjectTask> tasks,
-                    TimeEstimation originalEstimatedTime, String contactPersonName, String contactPersonEmail) {
+                    TimeEstimation originalEstimatedTime, ContactPerson contactPerson) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -59,8 +65,9 @@ public class Project implements Persistable<UUID> {
         this.isNew = isNew;
         this.initialEstimationHours = originalEstimatedTime.getHours();
         this.initialEstimationMinutes = originalEstimatedTime.getMinutes();
-        this.contactPersonName = contactPersonName;
-        this.contactPersonEmail = contactPersonEmail;
+        this.contactPersonName = contactPerson.name();
+        this.contactPersonEmail = contactPerson.email().value();
+        this.contactPerson = contactPerson;
     }
 
     @PersistenceCreator
@@ -81,6 +88,7 @@ public class Project implements Persistable<UUID> {
         this.initialEstimationMinutes = initialEstimationMinutes;
         this.contactPersonName = contactPersonName;
         this.contactPersonEmail = contactPersonEmail;
+        this.contactPerson = ContactPerson.rehydrate(contactPersonName, contactPersonEmail);
     }
 
     @Override
@@ -100,7 +108,7 @@ public class Project implements Persistable<UUID> {
         Set<ProjectTask> existingTasks = new HashSet<>(tasks);
         existingTasks.add(ProjectTask.createNew(taskId, taskName, description, estimation));
         return new Project(id, name, this.description, createdAt, plannedEndDate, status, version, false, existingTasks,
-                getInitialEstimation(), contactPersonName, contactPersonEmail);
+                getInitialEstimation(), contactPerson);
     }
 
     TimeEstimation getInitialEstimation(){
@@ -122,7 +130,7 @@ public class Project implements Persistable<UUID> {
                 ? ProjectStatus.COMPLETED
                 : status;
         return new Project(id, name, this.description, createdAt, plannedEndDate, newStatus, version, false,
-                processedTasks, getInitialEstimation(), contactPersonName, contactPersonEmail);
+                processedTasks, getInitialEstimation(), contactPerson);
     }
 
     private void verifyContainsTask(ProjectTaskId projectTaskId) {
@@ -164,8 +172,14 @@ public class Project implements Persistable<UUID> {
                 .orElseGet(TimeEstimation::zeroEstimation);
     }
 
-    public String getContactPersonEmail() {
-        return contactPersonEmail;
+    public Optional<Email> validContactEmail() {
+        return contactPerson.hasValidEmail()
+                ? Optional.of(contactPerson.email())
+                : Optional.empty();
+    }
+
+    public String contactEmailValue() {
+        return contactPerson.email().value();
     }
 
     @Override
