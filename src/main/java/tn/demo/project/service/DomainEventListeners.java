@@ -79,8 +79,12 @@ public class DomainEventListeners {
                         emailRecipient -> emailClientService.send(
                                 new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false)
                         ),
-                        () -> log.warn("Skipping sending email notification about new task {} for project {}: invalid contact email '{}'",
-                                taskId, project.getId(), project.contactEmailValue()));
+                        warnInvalidRecipientAddress(project, taskId));
+    }
+
+    private Runnable warnInvalidRecipientAddress(Project project, ProjectTaskId taskId) {
+        return () -> log.warn("Skipping sending email notification about new task {} for project {}: invalid contact email '{}'",
+                taskId, project.getId(), project.contactEmailValue());
     }
 
     private Project markProjectTaskCompleted(TeamTaskCompletedEvent teamTaskCompletedEvent, Project project, ActualSpentTime actualSpentTime) {
