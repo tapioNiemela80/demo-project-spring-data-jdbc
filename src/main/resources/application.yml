@@ -7,8 +7,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    schemas: project_demo
-    default-schema: project_demo
 
 server:
   port: 8080
