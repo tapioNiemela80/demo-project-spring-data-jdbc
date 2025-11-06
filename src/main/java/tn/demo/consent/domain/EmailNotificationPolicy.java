@@ -1,4 +1,4 @@
-package tn.demo.project.service;
+package tn.demo.consent.domain;
 
 import tn.demo.common.domain.EmailAddress;
 
