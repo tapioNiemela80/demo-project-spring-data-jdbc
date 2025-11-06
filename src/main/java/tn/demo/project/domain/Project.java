@@ -178,10 +178,6 @@ public class Project implements Persistable<UUID> {
                 : Optional.empty();
     }
 
-    public String contactEmailValue() {
-        return contactPerson.email().value();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

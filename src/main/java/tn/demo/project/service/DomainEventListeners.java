@@ -24,14 +24,18 @@ import tn.demo.team.events.TeamTaskCompletedEvent;
 public class DomainEventListeners {
     private final ProjectRepository projects;
     private final EmailClientService emailClientService;
+    private final EmailNotificationPolicy emailNotificationPolicy;
 
     private final Email sender;
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventListeners.class);
 
-    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService, @Value("${email.sender}") String sender) {
+    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService,
+                                EmailNotificationPolicy emailNotificationPolicy,
+                                @Value("${email.sender}") String sender) {
         this.projects = projects;
         this.emailClientService = emailClientService;
+        this.emailNotificationPolicy = emailNotificationPolicy;
         this.sender = Email.of(sender);
     }
 
@@ -76,15 +80,23 @@ public class DomainEventListeners {
     private void attemptToSendEmail(Project project, ProjectTaskId taskId, ProjectTaskSnapshot task) {
         project.validContactEmail()
                 .ifPresentOrElse(
-                        emailRecipient -> emailClientService.send(
-                                new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false)
-                        ),
+                        emailRecipient -> sendMail(emailRecipient, project, taskId, task),
                         warnInvalidRecipientAddress(project, taskId));
     }
 
+    private void sendMail(Email emailRecipient, Project project, ProjectTaskId taskId, ProjectTaskSnapshot task){
+        if(emailNotificationPolicy.notificationToEmailIsAllowed(emailRecipient)){
+            emailClientService.send(
+                    new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false));
+        }
+        else{
+            log.info("Skipping sending email about new task {} to project {}", taskId, project.getId());
+        }
+    }
+
     private Runnable warnInvalidRecipientAddress(Project project, ProjectTaskId taskId) {
-        return () -> log.warn("Skipping sending email notification about new task {} for project {}: invalid contact email '{}'",
-                taskId, project.getId(), project.contactEmailValue());
+        return () -> log.warn("Skipping sending email notification about new task {} for project {}: invalid contact email",
+                taskId, project.getId());
     }
 
     private Project markProjectTaskCompleted(TeamTaskCompletedEvent teamTaskCompletedEvent, Project project, ActualSpentTime actualSpentTime) {

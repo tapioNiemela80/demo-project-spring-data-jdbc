@@ -28,13 +28,15 @@ class DomainEventListenersTest {
     private ProjectRepository projects;
     @Mock
     private EmailClientService emailClientService;
+    @Mock
+    private EmailNotificationPolicy emailNotificationPolicy;
 
     private DomainEventListeners underTest;
     private String sender ="example.project@demo.org";
 
     @BeforeEach
     void setup() {
-        underTest = new DomainEventListeners(projects, emailClientService, sender);
+        underTest = new DomainEventListeners(projects, emailClientService, emailNotificationPolicy, sender);
     }
 
     @Test
@@ -59,6 +61,7 @@ class DomainEventListenersTest {
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
+        when(emailNotificationPolicy.notificationToEmailIsAllowed(email)).thenReturn(true);
         when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
         TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
 
@@ -70,6 +73,21 @@ class DomainEventListenersTest {
     void doesNotSendEmailOnTaskAddedToProjectEventWhenContactEmailIsIncorrect(){
         Project project = Mockito.mock(Project.class);
         when(project.validContactEmail()).thenReturn(Optional.empty());
+        ProjectId projectId = new ProjectId(UUID.randomUUID());
+        ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
+        when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
+        when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
+        TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
+
+        underTest.on(taskAddedToProjectEvent);
+        verify(emailClientService, never()).send(any(EmailMessage.class));
+    }
+
+    @Test
+    void doesNotSendEmailOnTaskAddedToProjectEventWhenPolicyDisallows(){
+        Project project = Mockito.mock(Project.class);
+        Email email = mock(Email.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(email));
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
