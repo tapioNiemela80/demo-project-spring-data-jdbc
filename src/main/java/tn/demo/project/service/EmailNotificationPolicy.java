@@ -1,7 +1,7 @@
 package tn.demo.project.service;
 
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 
 public interface EmailNotificationPolicy {
-    boolean notificationToEmailIsAllowed(Email email);
+    boolean notificationToEmailIsAllowed(EmailAddress emailAddress);
 }

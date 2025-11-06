@@ -1,7 +1,7 @@
 package tn.demo.project.domain;
 
 
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 import tn.demo.common.domain.ValueObject;
 
 import java.util.Objects;
@@ -10,31 +10,31 @@ import java.util.Objects;
 public final class ContactPerson {
 
     private final String name;
-    private final Email email;
+    private final EmailAddress emailAddress;
 
-    private ContactPerson(String name, Email email) {
+    private ContactPerson(String name, EmailAddress emailAddress) {
         this.name = name;
-        this.email = email;
+        this.emailAddress = emailAddress;
     }
 
     public static ContactPerson create(String name, String email) {
-        return new ContactPerson(name, Email.of(email));
+        return new ContactPerson(name, EmailAddress.of(email));
     }
 
     public static ContactPerson rehydrate(String name, String email) {
-        return new ContactPerson(name, Email.rehydrate(email));
+        return new ContactPerson(name, EmailAddress.rehydrate(email));
     }
 
     public String name() {
         return name;
     }
 
-    public Email email() {
-        return email;
+    public EmailAddress email() {
+        return emailAddress;
     }
 
     public boolean hasValidEmail() {
-        return email.isValid();
+        return emailAddress.isValid();
     }
 
     @Override
@@ -42,11 +42,11 @@ public final class ContactPerson {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ContactPerson that = (ContactPerson) o;
-        return name.equals(that.name) && email.equals(that.email);
+        return name.equals(that.name) && emailAddress.equals(that.emailAddress);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email);
+        return Objects.hash(name, emailAddress);
     }
 }

@@ -12,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 import tn.demo.project.domain.Project;
 import tn.demo.project.domain.ProjectTaskId;
 import tn.demo.project.domain.ProjectTaskSnapshot;
@@ -26,7 +26,7 @@ public class DomainEventListeners {
     private final EmailClientService emailClientService;
     private final EmailNotificationPolicy emailNotificationPolicy;
 
-    private final Email sender;
+    private final EmailAddress sender;
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventListeners.class);
 
@@ -36,7 +36,7 @@ public class DomainEventListeners {
         this.projects = projects;
         this.emailClientService = emailClientService;
         this.emailNotificationPolicy = emailNotificationPolicy;
-        this.sender = Email.of(sender);
+        this.sender = EmailAddress.of(sender);
     }
 
     @Retryable(
@@ -80,18 +80,17 @@ public class DomainEventListeners {
     private void attemptToSendEmail(Project project, ProjectTaskId taskId, ProjectTaskSnapshot task) {
         project.validContactEmail()
                 .ifPresentOrElse(
-                        emailRecipient -> sendMail(emailRecipient, project, taskId, task),
+                        emailRecipient -> sendMailIfPolicyAllows(emailRecipient, project, taskId, task),
                         warnInvalidRecipientAddress(project, taskId));
     }
 
-    private void sendMail(Email emailRecipient, Project project, ProjectTaskId taskId, ProjectTaskSnapshot task){
-        if(emailNotificationPolicy.notificationToEmailIsAllowed(emailRecipient)){
-            emailClientService.send(
-                    new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false));
+    private void sendMailIfPolicyAllows(EmailAddress emailRecipient, Project project, ProjectTaskId taskId, ProjectTaskSnapshot task) {
+        if (!emailNotificationPolicy.notificationToEmailIsAllowed(emailRecipient)) {
+            log.info("Skipping sending email about new task {} to project {}, policy denied", taskId, project.getId());
+            return;
         }
-        else{
-            log.info("Skipping sending email about new task {} to project {}", taskId, project.getId());
-        }
+        emailClientService.send(
+                new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false));
     }
 
     private Runnable warnInvalidRecipientAddress(Project project, ProjectTaskId taskId) {

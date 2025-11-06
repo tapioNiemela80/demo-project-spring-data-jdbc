@@ -10,7 +10,7 @@ import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
 import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.common.domain.AggregateRoot;
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -172,7 +172,7 @@ public class Project implements Persistable<UUID> {
                 .orElseGet(TimeEstimation::zeroEstimation);
     }
 
-    public Optional<Email> validContactEmail() {
+    public Optional<EmailAddress> validContactEmail() {
         return contactPerson.hasValidEmail()
                 ? Optional.of(contactPerson.email())
                 : Optional.empty();

@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
@@ -56,12 +56,12 @@ class DomainEventListenersTest {
     @Test
     void sendsEmailOnTaskAddedToProjectEvent(){
         Project project = Mockito.mock(Project.class);
-        Email email = mock(Email.class);
-        when(project.validContactEmail()).thenReturn(Optional.of(email));
+        EmailAddress emailAddress = mock(EmailAddress.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(emailAddress));
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
-        when(emailNotificationPolicy.notificationToEmailIsAllowed(email)).thenReturn(true);
+        when(emailNotificationPolicy.notificationToEmailIsAllowed(emailAddress)).thenReturn(true);
         when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
         TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
 
@@ -86,8 +86,8 @@ class DomainEventListenersTest {
     @Test
     void doesNotSendEmailOnTaskAddedToProjectEventWhenPolicyDisallows(){
         Project project = Mockito.mock(Project.class);
-        Email email = mock(Email.class);
-        when(project.validContactEmail()).thenReturn(Optional.of(email));
+        EmailAddress emailAddress = mock(EmailAddress.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(emailAddress));
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));

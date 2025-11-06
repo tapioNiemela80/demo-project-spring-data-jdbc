@@ -1,8 +1,8 @@
 package tn.demo.common;
 
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 
-public record EmailMessage(Email from, Email to, String subject, String content, boolean isHtml) {
+public record EmailMessage(EmailAddress from, EmailAddress to, String subject, String content, boolean isHtml) {
 
     @Override
     public String toString() {

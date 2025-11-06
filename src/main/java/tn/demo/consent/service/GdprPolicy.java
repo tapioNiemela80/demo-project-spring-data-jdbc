@@ -1,6 +1,6 @@
 package tn.demo.consent.service;
 
-import tn.demo.common.domain.Email;
+import tn.demo.common.domain.EmailAddress;
 import tn.demo.consent.repository.EmailOptOutRepository;
 import tn.demo.project.service.EmailNotificationPolicy;
 
@@ -13,7 +13,7 @@ public class GdprPolicy implements EmailNotificationPolicy {
     }
 
     @Override
-    public boolean notificationToEmailIsAllowed(Email email) {
-        return !optOuts.existsByEmail(email.value());
+    public boolean notificationToEmailIsAllowed(EmailAddress emailAddress) {
+        return !optOuts.existsByEmail(emailAddress.value());
     }
 }
