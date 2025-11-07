@@ -1,6 +1,8 @@
 package tn.demo.common;
 
-public record EmailMessage(String from, String to, String subject, String content, boolean isHtml) {
+import tn.demo.common.domain.EmailAddress;
+
+public record EmailMessage(EmailAddress from, EmailAddress to, String subject, String content, boolean isHtml) {
 
     @Override
     public String toString() {
@@ -13,6 +15,6 @@ public record EmailMessage(String from, String to, String subject, String conten
             Content:
             %s
             ====================
-            """.formatted(from, to, subject, isHtml, content);
+            """.formatted(from.value(), to.value(), subject, isHtml, content);
     }
 }

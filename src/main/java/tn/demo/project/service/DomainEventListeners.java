@@ -12,6 +12,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
+import tn.demo.common.domain.EmailAddress;
+import tn.demo.project.domain.EmailNotificationPolicy;
 import tn.demo.project.domain.Project;
 import tn.demo.project.domain.ProjectTaskId;
 import tn.demo.project.domain.ProjectTaskSnapshot;
@@ -23,15 +25,19 @@ import tn.demo.team.events.TeamTaskCompletedEvent;
 public class DomainEventListeners {
     private final ProjectRepository projects;
     private final EmailClientService emailClientService;
+    private final EmailNotificationPolicy emailNotificationPolicy;
 
-    private final String sender;
+    private final EmailAddress sender;
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventListeners.class);
 
-    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService, @Value("${email.sender}") String sender) {
+    public DomainEventListeners(ProjectRepository projects, EmailClientService emailClientService,
+                                EmailNotificationPolicy emailNotificationPolicy,
+                                @Value("${email.sender}") String sender) {
         this.projects = projects;
         this.emailClientService = emailClientService;
-        this.sender = sender;
+        this.emailNotificationPolicy = emailNotificationPolicy;
+        this.sender = EmailAddress.of(sender);
     }
 
     @Retryable(
@@ -58,18 +64,39 @@ public class DomainEventListeners {
     public void on(TaskAddedToProjectEvent taskAddedToProjectEvent) {
         log.atDebug().log(() -> "taskAddedToProjectEvent %s".formatted(taskAddedToProjectEvent));
         projects.findById(taskAddedToProjectEvent.getToProject().value())
-                .ifPresentOrElse(project -> sendEmail(project, taskAddedToProjectEvent.getTaskId()),
-                        () -> log.warn("Project not found {}", taskAddedToProjectEvent.getToProject()));
+                .ifPresentOrElse(
+                        project -> notifyContactPerson(project, taskAddedToProjectEvent.getTaskId()),
+                        () -> log.warn("Project not found {}", taskAddedToProjectEvent.getToProject())
+                );
     }
 
-    private void sendEmail(Project project, ProjectTaskId taskId) {
+    private void notifyContactPerson(Project project, ProjectTaskId taskId) {
         project.getTask(taskId)
-                .ifPresentOrElse(task -> sendEmail(project.getContactPersonEmail(), task),
-                        () -> log.warn("Task {} not found in project {}", taskId, project.getId()));
+                .ifPresentOrElse(
+                        task -> attemptToSendEmail(project, taskId, task),
+                        () -> log.warn("Task {} not found in project {}", taskId, project.getId())
+                );
     }
 
-    private void sendEmail(String contactPersonEmail, ProjectTaskSnapshot task) {
-        emailClientService.send(new EmailMessage(sender, contactPersonEmail, "Task added", "Task %s was added".formatted(task), false));
+    private void attemptToSendEmail(Project project, ProjectTaskId taskId, ProjectTaskSnapshot task) {
+        project.validContactEmail()
+                .ifPresentOrElse(
+                        emailRecipient -> sendMailIfPolicyAllows(emailRecipient, project, taskId, task),
+                        warnInvalidRecipientAddress(project, taskId));
+    }
+
+    private void sendMailIfPolicyAllows(EmailAddress emailRecipient, Project project, ProjectTaskId taskId, ProjectTaskSnapshot task) {
+        if (!emailNotificationPolicy.notificationToEmailIsAllowed(emailRecipient)) {
+            log.info("Skipping sending email about new task {} to project {}, policy denied", taskId, project.getId());
+            return;
+        }
+        emailClientService.send(
+                new EmailMessage(sender, emailRecipient, "Task added", "Task %s was added".formatted(task), false));
+    }
+
+    private Runnable warnInvalidRecipientAddress(Project project, ProjectTaskId taskId) {
+        return () -> log.warn("Skipping sending email notification about new task {} for project {}: invalid contact email",
+                taskId, project.getId());
     }
 
     private Project markProjectTaskCompleted(TeamTaskCompletedEvent teamTaskCompletedEvent, Project project, ActualSpentTime actualSpentTime) {

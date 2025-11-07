@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import tn.demo.common.domain.EmailNotValidException;
 import tn.demo.project.domain.ProjectAlreadyCompletedException;
 import tn.demo.project.domain.ProjectTimeEstimationWouldBeExceededException;
 import tn.demo.project.domain.UnknownProjectIdException;
@@ -93,6 +94,13 @@ public class ControllerExceptionHandler {
 
     @ExceptionHandler(TeamMemberHasAssignedTasksException.class)
     public ResponseEntity<String> handleTeamMemberHasAssignedTasksException(TeamMemberHasAssignedTasksException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailNotValidException.class)
+    public ResponseEntity<String> handleEmailNotValidException(EmailNotValidException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ex.getMessage());

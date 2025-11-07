@@ -9,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
+import tn.demo.common.domain.EmailAddress;
+import tn.demo.project.domain.EmailNotificationPolicy;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
@@ -19,8 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DomainEventListenersTest {
@@ -28,13 +29,15 @@ class DomainEventListenersTest {
     private ProjectRepository projects;
     @Mock
     private EmailClientService emailClientService;
+    @Mock
+    private EmailNotificationPolicy emailNotificationPolicy;
 
     private DomainEventListeners underTest;
     private String sender ="example.project@demo.org";
 
     @BeforeEach
     void setup() {
-        underTest = new DomainEventListeners(projects, emailClientService, sender);
+        underTest = new DomainEventListeners(projects, emailClientService, emailNotificationPolicy, sender);
     }
 
     @Test
@@ -54,6 +57,23 @@ class DomainEventListenersTest {
     @Test
     void sendsEmailOnTaskAddedToProjectEvent(){
         Project project = Mockito.mock(Project.class);
+        EmailAddress emailAddress = mock(EmailAddress.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(emailAddress));
+        ProjectId projectId = new ProjectId(UUID.randomUUID());
+        ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
+        when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
+        when(emailNotificationPolicy.notificationToEmailIsAllowed(emailAddress)).thenReturn(true);
+        when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
+        TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
+
+        underTest.on(taskAddedToProjectEvent);
+        verify(emailClientService).send(any(EmailMessage.class));
+    }
+
+    @Test
+    void doesNotSendEmailOnTaskAddedToProjectEventWhenContactEmailIsIncorrect(){
+        Project project = Mockito.mock(Project.class);
+        when(project.validContactEmail()).thenReturn(Optional.empty());
         ProjectId projectId = new ProjectId(UUID.randomUUID());
         ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
         when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
@@ -61,6 +81,21 @@ class DomainEventListenersTest {
         TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
 
         underTest.on(taskAddedToProjectEvent);
-        verify(emailClientService).send(any(EmailMessage.class));
+        verify(emailClientService, never()).send(any(EmailMessage.class));
+    }
+
+    @Test
+    void doesNotSendEmailOnTaskAddedToProjectEventWhenPolicyDisallows(){
+        Project project = Mockito.mock(Project.class);
+        EmailAddress emailAddress = mock(EmailAddress.class);
+        when(project.validContactEmail()).thenReturn(Optional.of(emailAddress));
+        ProjectId projectId = new ProjectId(UUID.randomUUID());
+        ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
+        when(projects.findById(projectId.value())).thenReturn(Optional.of(project));
+        when(project.getTask(taskId)).thenReturn(Optional.of(new ProjectTaskSnapshot(taskId, projectId, "title", "desc", TimeEstimation.fromMinutes(1))));
+        TaskAddedToProjectEvent taskAddedToProjectEvent = new TaskAddedToProjectEvent(projectId, taskId);
+
+        underTest.on(taskAddedToProjectEvent);
+        verify(emailClientService, never()).send(any(EmailMessage.class));
     }
 }
