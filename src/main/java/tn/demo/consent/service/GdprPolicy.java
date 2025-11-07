@@ -2,7 +2,7 @@ package tn.demo.consent.service;
 
 import tn.demo.common.domain.EmailAddress;
 import tn.demo.consent.repository.EmailOptOutRepository;
-import tn.demo.consent.domain.EmailNotificationPolicy;
+import tn.demo.project.domain.EmailNotificationPolicy;
 
 public class GdprPolicy implements EmailNotificationPolicy {
 

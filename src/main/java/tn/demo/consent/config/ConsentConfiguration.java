@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tn.demo.consent.repository.EmailOptOutRepository;
 import tn.demo.consent.service.GdprPolicy;
-import tn.demo.consent.domain.EmailNotificationPolicy;
+import tn.demo.project.domain.EmailNotificationPolicy;
 
 @Configuration
 public class ConsentConfiguration {

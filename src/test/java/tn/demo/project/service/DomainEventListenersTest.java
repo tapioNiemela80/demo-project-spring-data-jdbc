@@ -10,7 +10,7 @@ import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
 import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.common.domain.EmailAddress;
-import tn.demo.consent.domain.EmailNotificationPolicy;
+import tn.demo.project.domain.EmailNotificationPolicy;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
