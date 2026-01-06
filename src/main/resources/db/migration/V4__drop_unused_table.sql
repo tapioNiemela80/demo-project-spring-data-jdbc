@@ -1,0 +1,1 @@
+DROP TABLE project_demo.contact_persons;
