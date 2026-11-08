@@ -1,5 +1,6 @@
 package tn.demo.outbox;
 
+import org.springframework.context.ApplicationEvent;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.annotation.Transient;
@@ -82,22 +83,22 @@ public final class OutboxEntry implements Persistable<UUID> {
 
     public static OutboxEntry pending(
             UUID id,
-            String eventType,
+            Class<? extends ApplicationEvent> eventType,
             int eventVersion,
             String payload,
             LocalDateTime createdAt,
-            String aggregateType,
+            Class<?> aggregateType,
             UUID aggregateId,
             int aggregateVersion,
             String listenerId
     ) {
         OutboxEntry entry = new OutboxEntry(
                 id,
-                eventType,
+                eventType.getName(),
                 eventVersion,
                 payload,
                 createdAt,
-                aggregateType,
+                aggregateType.getName(),
                 aggregateId,
                 aggregateVersion,
                 listenerId,

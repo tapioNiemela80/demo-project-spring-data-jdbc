@@ -13,3 +13,11 @@ server:
 
 email:
   sender: demo.project@example.com
+
+outbox:
+  polling:
+    project-start-approval-process:
+      fixed-delay-ms: 5000
+  processing:
+    max-attempts: 5
+    retry-delay-seconds: 10

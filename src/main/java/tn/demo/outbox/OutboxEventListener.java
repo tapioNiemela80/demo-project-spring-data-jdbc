@@ -7,6 +7,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import tn.demo.common.DateService;
 import tn.demo.common.IDService;
+import tn.demo.project.domain.Project;
 import tn.demo.project.events.ProjectCreatedEvent;
 
 @Component
@@ -33,14 +34,14 @@ public class OutboxEventListener {
     public void on(ProjectCreatedEvent event) {
         outbox.save(OutboxEntry.pending(
                 ids.newId(),
-                "ProjectCreatedEvent",
+                event.getClass(),
                 1,
                 serialize(event),
                 dates.now(),
-                "Project",
+                Project.class,
                 event.getProjectId().value(),
                 1,
-                "project-approval-process"
+                "project-start-approval-process"
         ));
     }
 
