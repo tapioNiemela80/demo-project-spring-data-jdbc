@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import tn.demo.common.IDService;
+import tn.demo.project.controller.ApproverInput;
 import tn.demo.project.controller.ContactPersonInput;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
@@ -14,6 +15,7 @@ import tn.demo.project.repository.ProjectRepository;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,11 +46,12 @@ class ProjectServiceTest {
         LocalDate endDate = LocalDate.of(2026,12,31);
         tn.demo.project.controller.TimeEstimation timeEstimation = new tn.demo.project.controller.TimeEstimation(100,0);
         Project project = mock(Project.class);
-        when(projectFactory.createNew("test project", "test description", endDate, timeEstimation, new ContactPersonInput("name", "email"))).thenReturn(project);
+        Set<ApproverInput> approvers = Set.of();
+        when(projectFactory.createNew("test project", "test description", endDate, timeEstimation, new ContactPersonInput("name", "email"), approvers)).thenReturn(project);
         when(project.getId()).thenReturn(id.value());
         when(projects.save(project)).thenReturn(project);
 
-        ProjectId actual = underTest.createProject( "test project", "test description", endDate, timeEstimation, new ContactPersonInput("name", "email"));
+        ProjectId actual = underTest.createProject( "test project", "test description", endDate, timeEstimation, new ContactPersonInput("name", "email"), approvers);
         assertEquals(id, actual);
     }
 

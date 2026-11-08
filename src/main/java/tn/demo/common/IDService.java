@@ -1,6 +1,7 @@
 package tn.demo.common;
 
 import org.springframework.stereotype.Component;
+import tn.demo.common.domain.ApproverId;
 import tn.demo.project.domain.ProjectId;
 import tn.demo.project.domain.ProjectTaskId;
 import tn.demo.team.domain.TeamId;
@@ -31,8 +32,13 @@ public class IDService {
         return new TeamMemberId(newUUID());
     }
 
+    public ApproverId newApproverId(){return new ApproverId(newUUID());}
+
     private UUID newUUID(){
         return UUID.randomUUID();
     }
 
+    public UUID newId() {
+        return newUUID();
+    }
 }

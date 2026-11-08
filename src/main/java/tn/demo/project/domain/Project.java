@@ -11,6 +11,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.common.domain.AggregateRoot;
 import tn.demo.common.domain.EmailAddress;
+import tn.demo.project.domain.contracts.ApproverDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +37,8 @@ public class Project implements Persistable<UUID> {
     private final int initialEstimationMinutes;
     @MappedCollection(idColumn = "project_id", keyColumn = "id")
     private final Set<ProjectTask> tasks;
+    @MappedCollection(idColumn = "project_id", keyColumn = "id")
+    private final Set<Approver> approvers;
 
     @Transient
     private final ContactPerson contactPerson;
@@ -46,13 +49,20 @@ public class Project implements Persistable<UUID> {
     private final transient boolean isNew;
 
     public static Project createNew(ProjectId projectId, String name, String description, LocalDateTime now,
-                                    LocalDate plannedEndDate, TimeEstimation timeEstimation, ContactPerson contactPerson) {
-        return new Project(projectId.value(), name, description, now, plannedEndDate, ProjectStatus.PLANNED, 0, true, new HashSet<>(), timeEstimation, contactPerson);
+                                    LocalDate plannedEndDate, TimeEstimation timeEstimation, ContactPerson contactPerson, Set<ApproverDetails> approverDetails) {
+        var approvers = approverDetails.stream().map(Project::toApprover).collect(Collectors.toSet());
+        return new Project(projectId.value(), name, description, now, plannedEndDate, ProjectStatus.PLANNED, 0, true, new HashSet<>(),
+                approvers, timeEstimation, contactPerson);
+    }
+
+    private static Approver toApprover(ApproverDetails details) {
+        return Approver.createNew(details.id(), details.name(), details.email());
     }
 
     private Project(UUID id, String name, String description,
                     LocalDateTime createdAt, LocalDate plannedEndDate, ProjectStatus status,
                     int version, boolean isNew, Set<ProjectTask> tasks,
+                    Set<Approver> approvers,
                     TimeEstimation originalEstimatedTime, ContactPerson contactPerson) {
         this.id = id;
         this.name = name;
@@ -62,6 +72,7 @@ public class Project implements Persistable<UUID> {
         this.status = status;
         this.version = version;
         this.tasks = tasks;
+        this.approvers = approvers;
         this.isNew = isNew;
         this.initialEstimationHours = originalEstimatedTime.getHours();
         this.initialEstimationMinutes = originalEstimatedTime.getMinutes();
@@ -72,9 +83,9 @@ public class Project implements Persistable<UUID> {
 
     @PersistenceCreator
     private Project(UUID id, String name, String description, LocalDateTime createdAt,
-                    LocalDate plannedEndDate, ProjectStatus status, int version, Set<ProjectTask> tasks,
+                    LocalDate plannedEndDate, ProjectStatus status, int version, Set<ProjectTask> tasks, Set<Approver> approvers,
                     int initialEstimationHours, int initialEstimationMinutes,
-                    String contactPersonName, String contactPersonEmail){
+                    String contactPersonName, String contactPersonEmail) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -84,6 +95,7 @@ public class Project implements Persistable<UUID> {
         this.version = version;
         this.isNew = false;
         this.tasks = tasks;
+        this.approvers = approvers;
         this.initialEstimationHours = initialEstimationHours;
         this.initialEstimationMinutes = initialEstimationMinutes;
         this.contactPersonName = contactPersonName;
@@ -96,22 +108,23 @@ public class Project implements Persistable<UUID> {
         return id;
     }
 
-    public Project addTask(ProjectTaskId taskId, String taskName, String description, TimeEstimation estimation){
-        if(isCompleted()){
+    public Project addTask(ProjectTaskId taskId, String taskName, String description, TimeEstimation estimation) {
+        if (isCompleted()) {
             throw new ProjectAlreadyCompletedException(new ProjectId(id));
         }
         var currentTotalEstimation = getEstimationOfAllTasks();
         var newEstimation = currentTotalEstimation.add(estimation);
-        if (newEstimation.exceedsOther(getInitialEstimation())){
+        if (newEstimation.exceedsOther(getInitialEstimation())) {
             throw new ProjectTimeEstimationWouldBeExceededException("Cannot add any more tasks, project estimation would be exceeded");
         }
         Set<ProjectTask> existingTasks = new HashSet<>(tasks);
         existingTasks.add(ProjectTask.createNew(taskId, taskName, description, estimation));
         return new Project(id, name, this.description, createdAt, plannedEndDate, status, version, false, existingTasks,
+                approvers,
                 getInitialEstimation(), contactPerson);
     }
 
-    TimeEstimation getInitialEstimation(){
+    TimeEstimation getInitialEstimation() {
         return new TimeEstimation(initialEstimationHours, initialEstimationMinutes);
     }
 
@@ -130,7 +143,9 @@ public class Project implements Persistable<UUID> {
                 ? ProjectStatus.COMPLETED
                 : status;
         return new Project(id, name, this.description, createdAt, plannedEndDate, newStatus, version, false,
-                processedTasks, getInitialEstimation(), contactPerson);
+                processedTasks,
+                approvers,
+                getInitialEstimation(), contactPerson);
     }
 
     private void verifyContainsTask(ProjectTaskId projectTaskId) {
@@ -140,32 +155,32 @@ public class Project implements Persistable<UUID> {
                 .orElseThrow(() -> new UnknownProjectTaskIdException(projectTaskId));
     }
 
-    public boolean isCompleted(){
+    public boolean isCompleted() {
         return status == ProjectStatus.COMPLETED;
     }
 
-    private static boolean areAllTasksCompleted(Set<ProjectTask> tasks){
+    private static boolean areAllTasksCompleted(Set<ProjectTask> tasks) {
         return tasks.stream()
                 .allMatch(ProjectTask::isCompleted);
     }
 
-    private Function<ProjectTask, ProjectTask> processTask(ProjectTaskId projectTaskId, ActualSpentTime actualSpentTime){
+    private Function<ProjectTask, ProjectTask> processTask(ProjectTaskId projectTaskId, ActualSpentTime actualSpentTime) {
         return task -> {
-            if(task.hasId(projectTaskId)){
+            if (task.hasId(projectTaskId)) {
                 return task.complete(actualSpentTime);
             }
             return task;
         };
     }
 
-    public Optional<ProjectTaskSnapshot> getTask(ProjectTaskId projectTaskId){
+    public Optional<ProjectTaskSnapshot> getTask(ProjectTaskId projectTaskId) {
         return tasks.stream()
                 .filter(task -> task.hasId(projectTaskId))
                 .map(task -> task.toSnapshot(new ProjectId(this.getId())))
                 .findFirst();
     }
 
-    public TimeEstimation getEstimationOfAllTasks(){
+    public TimeEstimation getEstimationOfAllTasks() {
         return tasks.stream()
                 .map(ProjectTask::getEstimation)
                 .reduce(TimeEstimation::add)
@@ -176,6 +191,19 @@ public class Project implements Persistable<UUID> {
         return contactPerson.hasValidEmail()
                 ? Optional.of(contactPerson.email())
                 : Optional.empty();
+    }
+
+    //todo remove?
+    public Set<EmailAddress> validApproverEmails(){
+        return approvers.stream().map(Approver::validEmail)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<ApproverSnapshot> approversSnapshot(){
+        return approvers.stream()
+                .map(Approver::toSnapshot)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -191,4 +219,7 @@ public class Project implements Persistable<UUID> {
         return id.hashCode();
     }
 
+    public int getVersion() {
+        return version;
+    }
 }
