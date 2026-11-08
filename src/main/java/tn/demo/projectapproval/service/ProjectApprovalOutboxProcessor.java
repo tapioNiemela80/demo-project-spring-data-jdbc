@@ -3,7 +3,6 @@ package tn.demo.projectapproval.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tn.demo.outbox.ClaimedOutboxItem;
 import tn.demo.outbox.OutboxItemProcessor;
@@ -37,17 +36,15 @@ public class ProjectApprovalOutboxProcessor implements OutboxItemProcessor {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void process(ClaimedOutboxItem item) {
         if (!PROJECT_CREATED_EVENT_TYPES.contains(item.eventType())) {
             throw new IllegalArgumentException(
-                    "Unsupported event type " + item.eventType()
-            );
+                    "Unsupported event type " + item.eventType());
         }
         if (item.eventVersion() != 1) {
             throw new IllegalArgumentException(
-                    "Unsupported ProjectCreatedEvent version " + item.eventVersion()
-            );
+                    "Unsupported ProjectCreatedEvent version " + item.eventVersion());
         }
 
         try {
