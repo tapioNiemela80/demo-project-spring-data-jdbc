@@ -134,7 +134,9 @@ ainoastaan `EmailNotificationPolicy`-rajapintaa.
 
 Once a project reaches `COMPLETED`, its outbox event starts the approval process.
 After the approval aggregate commits, each approver receives a best-effort email
-with POST instructions. Failed email delivery is logged and is not retried.
+with POST instructions, subject to the existing `EmailNotificationPolicy` opt-out check.
+If the policy denies delivery or its check fails, no email is sent to that recipient.
+Failed email delivery is logged and is not retried.
 Configure `project-approval.base-url` to change the URL in emails (default:
 `http://localhost:8080`).
 
