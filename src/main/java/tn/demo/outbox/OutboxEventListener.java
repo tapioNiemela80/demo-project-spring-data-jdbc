@@ -8,7 +8,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import tn.demo.common.DateService;
 import tn.demo.common.IDService;
 import tn.demo.project.domain.Project;
-import tn.demo.project.events.ProjectCreatedEvent;
+import tn.demo.project.events.ProjectCompletedEvent;
 import tn.demo.project.service.TeamTaskCompletedOutboxProcessor;
 import tn.demo.team.domain.Team;
 import tn.demo.team.events.TeamTaskCompletedEvent;
@@ -35,7 +35,7 @@ public class OutboxEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
-    public void on(ProjectCreatedEvent event) {
+    public void on(ProjectCompletedEvent event) {
         outbox.save(OutboxEntry.pending(
                 ids.newId(),
                 event.getClass(),
@@ -44,7 +44,7 @@ public class OutboxEventListener {
                 dates.now(),
                 Project.class,
                 event.getProjectId().value(),
-                1,
+                null,
                 "project-start-approval-process"
         ));
     }

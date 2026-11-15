@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tn.demo.outbox.ClaimedOutboxItem;
 import tn.demo.outbox.OutboxItemProcessor;
-import tn.demo.project.events.ProjectCreatedEvent;
+import tn.demo.project.events.ProjectCompletedEvent;
 
 import java.util.Set;
 
@@ -15,9 +15,9 @@ public class ProjectApprovalOutboxProcessor implements OutboxItemProcessor {
 
     public static final String LISTENER_ID = "project-start-approval-process";
 
-    private static final Set<String> PROJECT_CREATED_EVENT_TYPES = Set.of(
-            ProjectCreatedEvent.class.getName(),
-            "ProjectCreatedEvent"
+    private static final Set<String> PROJECT_COMPLETED_EVENT_TYPES = Set.of(
+            ProjectCompletedEvent.class.getName(),
+            "ProjectCompletedEvent"
     );
 
     private final ObjectMapper objectMapper;
@@ -38,24 +38,24 @@ public class ProjectApprovalOutboxProcessor implements OutboxItemProcessor {
     @Override
     @Transactional
     public void process(ClaimedOutboxItem item) {
-        if (!PROJECT_CREATED_EVENT_TYPES.contains(item.eventType())) {
+        if (!PROJECT_COMPLETED_EVENT_TYPES.contains(item.eventType())) {
             throw new IllegalArgumentException(
                     "Unsupported event type " + item.eventType());
         }
         if (item.eventVersion() != 1) {
             throw new IllegalArgumentException(
-                    "Unsupported ProjectCreatedEvent version " + item.eventVersion());
+                    "Unsupported ProjectCompletedEvent version " + item.eventVersion());
         }
 
         try {
-            ProjectCreatedEvent event =
-                    objectMapper.readValue(item.payload(), ProjectCreatedEvent.class);
+            ProjectCompletedEvent event =
+                    objectMapper.readValue(item.payload(), ProjectCompletedEvent.class);
 
             approvals.startIfNotStarted(
                     event.getProjectId(),
                     event.getApprovers());
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Could not deserialize ProjectCreatedEvent", e);
+            throw new IllegalArgumentException("Could not deserialize ProjectCompletedEvent", e);
         }
     }
 }

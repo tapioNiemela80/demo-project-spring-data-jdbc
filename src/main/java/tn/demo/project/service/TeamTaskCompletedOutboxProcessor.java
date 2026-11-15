@@ -3,6 +3,9 @@ package tn.demo.project.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.context.ApplicationEventPublisher;
+import tn.demo.project.domain.ProjectId;
+import tn.demo.project.events.ProjectCompletedEvent;
 import org.springframework.transaction.annotation.Transactional;
 import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.outbox.ClaimedOutboxItem;
@@ -19,9 +22,13 @@ public class TeamTaskCompletedOutboxProcessor implements OutboxItemProcessor {
     private final ObjectMapper objectMapper;
     private final ProjectRepository projects;
 
-    public TeamTaskCompletedOutboxProcessor(ObjectMapper objectMapper, ProjectRepository projects) {
+    private final ApplicationEventPublisher events;
+
+    public TeamTaskCompletedOutboxProcessor(ObjectMapper objectMapper, ProjectRepository projects,
+                                            ApplicationEventPublisher events) {
         this.objectMapper = objectMapper;
         this.projects = projects;
+        this.events = events;
     }
 
     @Override
@@ -43,8 +50,13 @@ public class TeamTaskCompletedOutboxProcessor implements OutboxItemProcessor {
             var project = projects.findByTaskId(event.projectTaskId())
                     .orElseThrow(() -> new IllegalStateException("Project by task id not found: " + event.projectTaskId()));
             // Completion assigns status and time; replaying the same event does not accumulate time.
-            projects.save(project.completeTask(new ProjectTaskId(event.projectTaskId()),
-                    new ActualSpentTime(event.hours(), event.minutes())));
+            var updated = project.completeTask(new ProjectTaskId(event.projectTaskId()),
+                    new ActualSpentTime(event.hours(), event.minutes()));
+            projects.save(updated);
+            if (!project.isCompleted() && updated.isCompleted()) {
+                events.publishEvent(new ProjectCompletedEvent(
+                        new ProjectId(updated.getId()), updated.approversSnapshot()));
+            }
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Could not deserialize TeamTaskCompletedEvent", e);
         }

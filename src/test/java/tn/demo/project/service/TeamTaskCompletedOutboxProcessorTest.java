@@ -2,6 +2,8 @@ package tn.demo.project.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
+import tn.demo.project.events.ProjectCompletedEvent;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import tn.demo.common.DateService;
@@ -24,7 +26,8 @@ import static org.mockito.Mockito.*;
 class TeamTaskCompletedOutboxProcessorTest {
     private final ProjectRepository projects = mock(ProjectRepository.class);
     private final ObjectMapper mapper = new ObjectMapper();
-    private final TeamTaskCompletedOutboxProcessor processor = new TeamTaskCompletedOutboxProcessor(mapper, projects);
+    private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
+    private final TeamTaskCompletedOutboxProcessor processor = new TeamTaskCompletedOutboxProcessor(mapper, projects, events);
     private final ProjectTaskId taskId = new ProjectTaskId(UUID.randomUUID());
 
     private ClaimedOutboxItem enqueue() {
@@ -53,6 +56,7 @@ class TeamTaskCompletedOutboxProcessorTest {
         when(project.completeTask(taskId, ActualSpentTime.fromMinutes(75))).thenReturn(completed);
         processor.process(item);
         verify(projects).save(completed);
+        verifyNoInteractions(events);
     }
 
     @Test
@@ -64,6 +68,7 @@ class TeamTaskCompletedOutboxProcessorTest {
         var failure = new OptimisticLockingFailureException("concurrent update");
         when(projects.save(project)).thenThrow(failure);
         assertSame(failure, assertThrows(OptimisticLockingFailureException.class, () -> processor.process(item)));
+        verifyNoInteractions(events);
     }
 
     @Test
@@ -72,5 +77,23 @@ class TeamTaskCompletedOutboxProcessorTest {
         when(projects.findByTaskId(taskId.value())).thenReturn(Optional.empty());
         assertThrows(IllegalStateException.class, () -> processor.process(item));
         verify(projects, never()).save(any());
+    }
+    @Test
+    void publishesCompletionOnlyOnTransitionToCompleted() {
+        var item = enqueue();
+        var project = mock(Project.class);
+        var completed = mock(Project.class);
+        var projectId = UUID.randomUUID();
+        when(projects.findByTaskId(taskId.value())).thenReturn(Optional.of(project), Optional.of(completed));
+        when(project.completeTask(taskId, ActualSpentTime.fromMinutes(75))).thenReturn(completed);
+        when(completed.completeTask(taskId, ActualSpentTime.fromMinutes(75))).thenReturn(completed);
+        when(completed.isCompleted()).thenReturn(true);
+        when(completed.getId()).thenReturn(projectId);
+        when(completed.approversSnapshot()).thenReturn(java.util.Set.of());
+        processor.process(item);
+        processor.process(item);
+        var captor = ArgumentCaptor.forClass(ProjectCompletedEvent.class);
+        verify(events, times(1)).publishEvent(captor.capture());
+        assertEquals(projectId, captor.getValue().getProjectId().value());
     }
 }
