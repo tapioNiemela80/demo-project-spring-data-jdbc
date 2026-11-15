@@ -8,6 +8,12 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import tn.demo.common.DateService;
 import tn.demo.common.IDService;
 import tn.demo.project.domain.Project;
+import tn.demo.project.service.ProjectApprovalResultOutboxProcessor;
+import tn.demo.projectapproval.domain.ProjectApproval;
+import tn.demo.projectapproval.events.ProjectApprovedEvent;
+import tn.demo.projectapproval.events.ProjectRejectedEvent;
+import org.springframework.context.ApplicationEvent;
+import tn.demo.project.domain.ProjectId;
 import tn.demo.project.events.ProjectCompletedEvent;
 import tn.demo.project.service.TeamTaskCompletedOutboxProcessor;
 import tn.demo.team.domain.Team;
@@ -62,6 +68,17 @@ public class OutboxEventListener {
                 null,
                 TeamTaskCompletedOutboxProcessor.LISTENER_ID
         ));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void on(ProjectApprovedEvent event) { saveApprovalResult(event, event.getProjectId()); }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void on(ProjectRejectedEvent event) { saveApprovalResult(event, event.getProjectId()); }
+
+    private void saveApprovalResult(ApplicationEvent event, ProjectId projectId) {
+        outbox.save(OutboxEntry.pending(ids.newId(), event.getClass(), 1, serialize(event), dates.now(),
+                ProjectApproval.class, projectId.value(), null, ProjectApprovalResultOutboxProcessor.LISTENER_ID));
     }
 
     private String serialize(Object event) {

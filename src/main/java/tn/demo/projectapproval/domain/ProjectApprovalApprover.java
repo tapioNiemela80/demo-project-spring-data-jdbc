@@ -44,6 +44,14 @@ class ProjectApprovalApprover {
         );
     }
 
+    boolean hasId(UUID approverId) { return id.equals(approverId); }
+
+    ApproverApprovalStatus status() { return status; }
+
+    ProjectApprovalApprover decide(ApproverApprovalStatus decision, LocalDateTime now) {
+        return new ProjectApprovalApprover(id, name, email, decision, now);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

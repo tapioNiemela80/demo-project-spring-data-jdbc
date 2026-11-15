@@ -74,6 +74,36 @@ public class ProjectApproval implements Persistable<UUID> {
         this.newApproval = newApproval;
     }
 
+    public boolean isApproved() {
+        return approvers.stream().allMatch(a -> a.status() == ApproverApprovalStatus.APPROVED);
+    }
+
+    public boolean isRejected() {
+        return approvers.stream().anyMatch(a -> a.status() == ApproverApprovalStatus.REJECTED);
+    }
+
+    public boolean isPending() {
+        return !isApproved() && !isRejected();
+    }
+
+    public ProjectApproval decide(UUID approverId, ApprovalDecision decision, LocalDateTime now) {
+        Objects.requireNonNull(decision, "decision");
+        var approver = approvers.stream().filter(a -> a.hasId(approverId)).findFirst()
+                .orElseThrow(() -> new java.util.NoSuchElementException("Unknown approver: " + approverId));
+        var result = decision == ApprovalDecision.APPROVE
+                ? ApproverApprovalStatus.APPROVED : ApproverApprovalStatus.REJECTED;
+        if (approver.status() == result) { return this; }
+        if (approver.status() != ApproverApprovalStatus.PENDING) {
+            throw new IllegalStateException("An approver cannot change an existing decision");
+        }
+        if (!isPending()) {
+            throw new IllegalStateException("Approval process has ended");
+        }
+        var updated = approvers.stream()
+                .map(a -> a.hasId(approverId) ? a.decide(result, now) : a).collect(Collectors.toSet());
+        return new ProjectApproval(projectId, startedAt, version, updated, false);
+    }
+
     @Override
     public UUID getId() {
         return projectId;

@@ -135,6 +135,9 @@ public class Project implements Persistable<UUID> {
 
     public Project completeTask(ProjectTaskId projectTaskId, ActualSpentTime actualSpentTime) {
         verifyContainsTask(projectTaskId);
+        if (isCompleted()) {
+            return this;
+        }
 
         var processedTasks = tasks.stream()
                 .map(processTask(projectTaskId, actualSpentTime))
@@ -156,7 +159,22 @@ public class Project implements Persistable<UUID> {
     }
 
     public boolean isCompleted() {
-        return status == ProjectStatus.COMPLETED;
+        return status == ProjectStatus.COMPLETED || status == ProjectStatus.APPROVED || status == ProjectStatus.REJECTED;
+    }
+
+    public Project approve() { return withApprovalStatus(ProjectStatus.APPROVED); }
+
+    public Project reject() { return withApprovalStatus(ProjectStatus.REJECTED); }
+
+    public ProjectStatus getStatus() { return status; }
+
+    private Project withApprovalStatus(ProjectStatus result) {
+        if (status == result) { return this; }
+        if (status != ProjectStatus.COMPLETED) {
+            throw new IllegalStateException("Approval result requires a completed project: " + id);
+        }
+        return new Project(id, name, description, createdAt, plannedEndDate, result, version, false,
+                tasks, approvers, getInitialEstimation(), contactPerson);
     }
 
     private static boolean areAllTasksCompleted(Set<ProjectTask> tasks) {

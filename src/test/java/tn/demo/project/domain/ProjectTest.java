@@ -96,6 +96,29 @@ class ProjectTest {
         assertThrows(ProjectAlreadyCompletedException.class, () -> withCompletedTasks.addTask(taskId2, "task", "desc", TimeEstimation.fromMinutes(1)));
     }
 
+    @Test
+    void approvalOutcomesAreFinalAndCompletionReplayCannotResetThem() {
+        var task = new ProjectTaskId(UUID.randomUUID());
+        var project = Project.createNew(new ProjectId(UUID.randomUUID()), "test", "description",
+                LocalDateTime.now(), LocalDate.now().plusDays(1), TimeEstimation.fromMinutes(60),
+                contactPerson(), approvers());
+        assertThrows(IllegalStateException.class, project::approve);
+        var completed = project.addTask(task, "task", "description", TimeEstimation.fromMinutes(30))
+                .completeTask(task, ActualSpentTime.fromMinutes(20));
+        var approved = completed.approve();
+        var rejected = completed.reject();
+        assertEquals(ProjectStatus.APPROVED, approved.getStatus());
+        assertEquals(ProjectStatus.REJECTED, rejected.getStatus());
+        assertSame(approved, approved.approve());
+        assertSame(rejected, rejected.reject());
+        assertSame(approved, approved.completeTask(task, ActualSpentTime.fromMinutes(20)));
+        assertSame(rejected, rejected.completeTask(task, ActualSpentTime.fromMinutes(20)));
+        assertThrows(IllegalStateException.class, approved::reject);
+        assertThrows(IllegalStateException.class, rejected::approve);
+        assertThrows(ProjectAlreadyCompletedException.class, () -> approved.addTask(
+                new ProjectTaskId(UUID.randomUUID()), "new", "task", TimeEstimation.fromMinutes(1)));
+    }
+
     private void verifyNoTaskFound(Project project, ProjectTaskId taskId) {
         assertTrue(project.getTask(taskId).isEmpty());
     }

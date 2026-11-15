@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import tn.demo.projectapproval.service.ProjectApprovalOutboxProcessor;
 import tn.demo.project.service.TeamTaskCompletedOutboxProcessor;
+import tn.demo.project.service.ProjectApprovalResultOutboxProcessor;
 
 @Component
 public class OutboxPollingScheduler {
@@ -17,6 +18,15 @@ public class OutboxPollingScheduler {
 
     public OutboxPollingScheduler(OutboxHandler handler) {
         this.handler = handler;
+    }
+
+    @Scheduled(fixedDelayString = "${outbox.polling.project-approval-result.fixed-delay-ms:5000}")
+    public void pollProjectApprovalResults() {
+        try {
+            handler.handle(ProjectApprovalResultOutboxProcessor.LISTENER_ID);
+        } catch (Exception failure) {
+            log.error("Outbox polling failed for listener {}", ProjectApprovalResultOutboxProcessor.LISTENER_ID, failure);
+        }
     }
 
     @Scheduled(fixedDelayString = "${outbox.polling.project-complete-task.fixed-delay-ms:5000}")

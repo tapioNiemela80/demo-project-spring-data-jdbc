@@ -129,3 +129,29 @@ ainoastaan `EmailNotificationPolicy`-rajapintaa.
 - Java + Spring Boot + Spring Data JDBC
 - Domain Driven Design (aggregaatit, säännöt, eventit)
 - Käytännöllinen REST-rajapinta
+
+## Project approval
+
+Once a project reaches `COMPLETED`, its outbox event starts the approval process.
+After the approval aggregate commits, each approver receives a best-effort email
+with POST instructions. Failed email delivery is logged and is not retried.
+Configure `project-approval.base-url` to change the URL in emails (default:
+`http://localhost:8080`).
+
+```sh
+curl -X POST 'http://localhost:8080/projects/{projectId}/approvals/{approverId}' \
+  -H 'Content-Type: text/plain' --data 'APPROVE'
+```
+
+Use `REJECT` to reject. No authentication is required in this portfolio demo.
+Successful decisions return `204`; invalid input returns `400`, an unknown approval
+process or approver returns `404`, and a concurrent update or conflicting final
+decision returns `409`. The same decision can be submitted again safely.
+
+All approvers must approve. A single rejection immediately ends the process;
+remaining approvers cannot submit new decisions. If there are no approvers, the
+process approves automatically. The final `ProjectApprovedEvent` or
+`ProjectRejectedEvent` is stored in the outbox in the decision transaction.
+Polling updates the project to `APPROVED` or `REJECTED` asynchronously, by default
+every 5 seconds (`outbox.polling.project-approval-result.fixed-delay-ms`).
+Repeated completion or result events cannot reset a final project status.

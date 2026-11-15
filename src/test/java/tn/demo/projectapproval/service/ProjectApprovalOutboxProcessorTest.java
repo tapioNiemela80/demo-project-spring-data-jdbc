@@ -39,7 +39,7 @@ class ProjectApprovalOutboxProcessorTest {
                 entry.getPayload(), entry.getListenerId(), 1, UUID.randomUUID());
         var repository = mock(ProjectApprovalRepository.class);
         when(repository.existsById(projectId.value())).thenReturn(false, true);
-        var processor = new ProjectApprovalOutboxProcessor(mapper, new ProjectApprovalService(repository, dates));
+        var processor = new ProjectApprovalOutboxProcessor(mapper, new ProjectApprovalService(repository, dates, mock(org.springframework.context.ApplicationEventPublisher.class)));
         assertEquals(processor.listenerId(), entry.getListenerId());
         processor.process(item);
         processor.process(item);
