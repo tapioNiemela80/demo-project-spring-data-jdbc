@@ -7,7 +7,6 @@ import tn.demo.common.IDService;
 import tn.demo.project.controller.ApproverInput;
 import tn.demo.project.controller.ContactPersonInput;
 import tn.demo.project.domain.*;
-import tn.demo.project.events.ProjectCreatedEvent;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
 
@@ -31,9 +30,7 @@ public class ProjectService {
     @Transactional
     public ProjectId createProject(String name, String description, LocalDate estimatedEndDate, tn.demo.project.controller.TimeEstimation estimation, ContactPersonInput contactPerson, Set<ApproverInput> approvers) {
         Project project = projectFactory.createNew(name, description, estimatedEndDate, estimation, contactPerson, approvers);
-        var id = new ProjectId(projects.save(project).getId());
-        applicationEventPublisher.publishEvent(new ProjectCreatedEvent(id, project.approversSnapshot()));
-        return id;
+        return new ProjectId(projects.save(project).getId());
     }
 
     @Transactional

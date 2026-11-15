@@ -10,7 +10,6 @@ import tn.demo.outbox.*;
 import tn.demo.project.domain.ApproverSnapshot;
 import tn.demo.project.domain.ProjectId;
 import tn.demo.project.events.ProjectCompletedEvent;
-import tn.demo.project.events.ProjectCreatedEvent;
 import tn.demo.projectapproval.repository.ProjectApprovalRepository;
 
 import java.time.LocalDateTime;
@@ -47,10 +46,10 @@ class ProjectApprovalOutboxProcessorTest {
     }
 
     @Test
-    void projectCreatedEventCannotStartApproval() {
+    void unsupportedEventCannotStartApproval() {
         var approvals = mock(ProjectApprovalService.class);
         var processor = new ProjectApprovalOutboxProcessor(new ObjectMapper(), approvals);
-        var item = new ClaimedOutboxItem(UUID.randomUUID(), ProjectCreatedEvent.class.getName(), 1,
+        var item = new ClaimedOutboxItem(UUID.randomUUID(), "UnsupportedEvent", 1,
                 "{}", processor.listenerId(), 1, UUID.randomUUID());
         assertThrows(IllegalArgumentException.class, () -> processor.process(item));
         verifyNoInteractions(approvals);
