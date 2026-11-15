@@ -6,17 +6,24 @@ import tn.demo.project.domain.ProjectTaskId;
 import tn.demo.team.domain.TeamTaskId;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class TeamTaskCompletedEvent extends ApplicationEvent {
     private final TeamTaskId taskID;
+    private final UUID teamId;
     private final ProjectTaskId projectTaskId;
     private final ActualSpentTime actualSpentTime;
-    public TeamTaskCompletedEvent(TeamTaskId taskID, ProjectTaskId projectTaskId, ActualSpentTime actualSpentTime) {
+    public TeamTaskCompletedEvent(UUID teamId, TeamTaskId taskID, ProjectTaskId projectTaskId, ActualSpentTime actualSpentTime) {
         super(taskID);
         this.taskID = taskID;
+        this.teamId = teamId;
         this.projectTaskId = projectTaskId;
         this.actualSpentTime = actualSpentTime;
     }
+    public UUID getTeamId() {
+        return teamId;
+    }
+
     public ProjectTaskId getProjectTaskId() {
         return projectTaskId;
     }
@@ -30,11 +37,11 @@ public class TeamTaskCompletedEvent extends ApplicationEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TeamTaskCompletedEvent that = (TeamTaskCompletedEvent) o;
-        return taskID.equals(that.taskID) && projectTaskId.equals(that.projectTaskId) && actualSpentTime.equals(that.actualSpentTime);
+        return Objects.equals(teamId, that.teamId) && taskID.equals(that.taskID) && projectTaskId.equals(that.projectTaskId) && actualSpentTime.equals(that.actualSpentTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskID, projectTaskId, actualSpentTime);
+        return Objects.hash(teamId, taskID, projectTaskId, actualSpentTime);
     }
 }

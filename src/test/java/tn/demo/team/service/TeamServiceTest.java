@@ -250,7 +250,7 @@ class TeamServiceTest {
         when(teams.save(team)).thenReturn(team);
         underTest.completeTask(teamId, taskId, new tn.demo.team.controller.ActualSpentTime(10, 0));
 
-        verify(applicationEventPublisher).publishEvent(new TeamTaskCompletedEvent(taskId, projectTaskId, new ActualSpentTime(10, 0)));
+        verify(applicationEventPublisher).publishEvent(new TeamTaskCompletedEvent(team.getId(), taskId, projectTaskId, new ActualSpentTime(10, 0)));
     }
 
     @Test

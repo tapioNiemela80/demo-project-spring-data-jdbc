@@ -16,6 +16,8 @@ email:
 
 outbox:
   polling:
+    project-complete-task:
+      fixed-delay-ms: 5000
     project-start-approval-process:
       fixed-delay-ms: 5000
   processing:

@@ -9,6 +9,10 @@ import tn.demo.common.DateService;
 import tn.demo.common.IDService;
 import tn.demo.project.domain.Project;
 import tn.demo.project.events.ProjectCreatedEvent;
+import tn.demo.project.service.TeamTaskCompletedOutboxProcessor;
+import tn.demo.team.domain.Team;
+import tn.demo.team.events.TeamTaskCompletedEvent;
+import tn.demo.team.events.TeamTaskCompletedPayload;
 
 @Component
 public class OutboxEventListener {
@@ -42,6 +46,21 @@ public class OutboxEventListener {
                 event.getProjectId().value(),
                 1,
                 "project-start-approval-process"
+        ));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void on(TeamTaskCompletedEvent event) {
+        outbox.save(OutboxEntry.pending(
+                ids.newId(),
+                TeamTaskCompletedEvent.class,
+                1,
+                serialize(TeamTaskCompletedPayload.from(event)),
+                dates.now(),
+                Team.class,
+                event.getTeamId(),
+                null,
+                TeamTaskCompletedOutboxProcessor.LISTENER_ID
         ));
     }
 

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import tn.demo.projectapproval.service.ProjectApprovalOutboxProcessor;
+import tn.demo.project.service.TeamTaskCompletedOutboxProcessor;
 
 @Component
 public class OutboxPollingScheduler {
@@ -16,6 +17,16 @@ public class OutboxPollingScheduler {
 
     public OutboxPollingScheduler(OutboxHandler handler) {
         this.handler = handler;
+    }
+
+    @Scheduled(fixedDelayString = "${outbox.polling.project-complete-task.fixed-delay-ms:5000}")
+    public void pollTeamTaskCompleted() {
+        try {
+            handler.handle(TeamTaskCompletedOutboxProcessor.LISTENER_ID);
+        } catch (Exception failure) {
+            log.error("Outbox polling failed for listener {}",
+                    TeamTaskCompletedOutboxProcessor.LISTENER_ID, failure);
+        }
     }
 
     @Scheduled(

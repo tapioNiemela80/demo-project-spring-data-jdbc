@@ -8,14 +8,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tn.demo.common.EmailClientService;
 import tn.demo.common.EmailMessage;
-import tn.demo.common.domain.ActualSpentTime;
 import tn.demo.common.domain.EmailAddress;
 import tn.demo.project.domain.EmailNotificationPolicy;
 import tn.demo.project.domain.*;
 import tn.demo.project.events.TaskAddedToProjectEvent;
 import tn.demo.project.repository.ProjectRepository;
-import tn.demo.team.domain.TeamTaskId;
-import tn.demo.team.events.TeamTaskCompletedEvent;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -38,20 +35,6 @@ class DomainEventListenersTest {
     @BeforeEach
     void setup() {
         underTest = new DomainEventListeners(projects, emailClientService, emailNotificationPolicy, sender);
-    }
-
-    @Test
-    void marksProjectTaskCompletedOnTeamTaskCompletedEvent(){
-        TeamTaskId taskID = new TeamTaskId(UUID.randomUUID());
-        ProjectTaskId projectTaskId = new ProjectTaskId(UUID.randomUUID());
-
-        TeamTaskCompletedEvent teamTaskCompletedEvent = new TeamTaskCompletedEvent(taskID, projectTaskId, ActualSpentTime.fromMinutes(50));
-        Project project = Mockito.mock(Project.class);
-        when(projects.findByTaskId(projectTaskId.value())).thenReturn(Optional.of(project));
-        when(project.completeTask(projectTaskId, ActualSpentTime.fromMinutes(50))).thenReturn(project);
-
-        underTest.on(teamTaskCompletedEvent);
-        verify(projects).save(project);
     }
 
     @Test

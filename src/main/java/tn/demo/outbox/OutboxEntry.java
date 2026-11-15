@@ -24,7 +24,7 @@ public final class OutboxEntry implements Persistable<UUID> {
 
     private final String aggregateType;
     private final UUID aggregateId;
-    private final int aggregateVersion;
+    private final Integer aggregateVersion;
 
     private final String listenerId;
     private final int attempts;
@@ -50,7 +50,7 @@ public final class OutboxEntry implements Persistable<UUID> {
             LocalDateTime createdAt,
             String aggregateType,
             UUID aggregateId,
-            int aggregateVersion,
+            Integer aggregateVersion,
             String listenerId,
             int attempts,
             LocalDateTime availableAt,
@@ -89,7 +89,7 @@ public final class OutboxEntry implements Persistable<UUID> {
             LocalDateTime createdAt,
             Class<?> aggregateType,
             UUID aggregateId,
-            int aggregateVersion,
+            Integer aggregateVersion,
             String listenerId
     ) {
         OutboxEntry entry = new OutboxEntry(

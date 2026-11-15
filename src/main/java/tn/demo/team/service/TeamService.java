@@ -121,7 +121,7 @@ public class TeamService {
 
     private Team publishTaskCompletedEvent(TeamTaskId taskID, Team team, tn.demo.common.domain.ActualSpentTime actualSpentTime) {
         team.getOriginalTaskId(taskID)
-                .ifPresent(projectTaskId -> applicationEventPublisher.publishEvent(new TeamTaskCompletedEvent(taskID, projectTaskId, actualSpentTime)));
+                .ifPresent(projectTaskId -> applicationEventPublisher.publishEvent(new TeamTaskCompletedEvent(team.getId(), taskID, projectTaskId, actualSpentTime)));
         return team;
     }
 
