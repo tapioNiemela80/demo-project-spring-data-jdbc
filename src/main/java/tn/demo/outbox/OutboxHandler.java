@@ -23,23 +23,20 @@ public class OutboxHandler {
             OutboxClaimService claims,
             OutboxItemProcessingService itemProcessing,
             OutboxFailureHandler failures,
-            List<OutboxItemProcessor> processors
-    ) {
+            List<OutboxItemProcessor> processors) {
         this.claims = claims;
         this.itemProcessing = itemProcessing;
         this.failures = failures;
         this.processorsByListenerId = processors.stream()
                 .collect(Collectors.toUnmodifiableMap(
                         OutboxItemProcessor::listenerId,
-                        Function.identity()
-                ));
+                        Function.identity()));
     }
 
     public void handle(String listenerId) {
         OutboxItemProcessor processor = processorsByListenerId.get(listenerId);
         if (processor == null) {
-            throw new IllegalArgumentException(
-                    "No outbox processor for listenerId " + listenerId);
+            throw new IllegalArgumentException("No outbox processor for listenerId " + listenerId);
         }
         var items = claims.claimBatch(listenerId);
         log.info("Processing " + items.size() + " items for listener " + listenerId);
@@ -53,25 +50,17 @@ public class OutboxHandler {
         try {
             //processes and completes item in new transaction
             itemProcessing.processAndComplete(item, processor);
+        } catch (LostClaimException lostClaim) {
+            log.warn("Stopped processing outbox item {} for listener {}; claim is no longer owned",
+                    item.id(), item.listenerId());
         } catch (Exception failure) {
-            log.error(
-                    "Processing outbox item {} for listener {} failed",
-                    item.id(),
-                    item.listenerId(),
-                    failure
-            );
-
+            log.error( "Processing outbox item {} for listener {} failed", item.id(), item.listenerId(),failure);
             try {
                 if (!failures.handle(item, failure)) {
-                    log.warn(
-                            "Could not update failed outbox item {}; claim is no longer owned",
-                            item.id());
+                    log.warn( "Could not update failed outbox item {}; claim is no longer owned", item.id());
                 }
             } catch (Exception failureUpdateError) {
-                log.error(
-                        "Could not persist failure for outbox item {}; it can be reclaimed after lease expiry",
-                        item.id(),
-                        failureUpdateError);
+                log.error( "Could not persist failure for outbox item {}; it can be reclaimed after lease expiry", item.id(), failureUpdateError);
             }
         }
     }

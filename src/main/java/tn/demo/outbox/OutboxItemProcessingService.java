@@ -14,17 +14,11 @@ public class OutboxItemProcessingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processAndComplete(
-            ClaimedOutboxItem item,
-            OutboxItemProcessor processor
-    ) {
+    public void processAndComplete(ClaimedOutboxItem item, OutboxItemProcessor processor) {
         processor.process(item);
 
         if (!completions.complete(item)) {
-            throw new IllegalStateException(
-                    "Could not complete outbox item because claim is no longer owned: "
-                            + item.id()
-            );
+            throw new LostClaimException("Could not complete outbox item because claim is no longer owned: " + item.id());
         }
     }
 }
